@@ -11,6 +11,7 @@ public class Authentication {
         String storedHash = getStoredHash(email);
 
         if (storedHash == null) {
+            System.out.println("User not found for email: " + email);
             return false; // User not found
         }
 
@@ -22,7 +23,16 @@ public class Authentication {
             return false;
         }
 
-        return inputHash.equals(storedHash);
+        // Debug: Print the computed hash for verification
+        System.out.println("Computed Hash for " + email + ": " + inputHash);
+
+        if (inputHash.equals(storedHash)) {
+            System.out.println("Login successful for email: " + email);
+            return true;
+        } else {
+            System.out.println("Login failed for email: " + email);
+            return false;
+        }
     }
 
     private static String getStoredHash(String email) {
@@ -30,8 +40,8 @@ public class Authentication {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("/");
-                if (parts.length == 3 && parts[1].equals(email)) {
-                    return parts[2]; // Return the stored hash
+                if (parts.length == 2 && parts[0].equals(email)) {
+                    return parts[1]; // Return the stored hash
                 }
             }
         } catch (IOException e) {
@@ -49,6 +59,10 @@ public class Authentication {
 
         User user = new User(email, password);
         saveUserToDatabase(user);
+
+        // Debug: Print the stored hash for verification
+        String storedHash = getStoredHash(email);
+        System.out.println("Stored Hash for " + email + ": " + storedHash);
     }
 
     public static boolean isUserRegistered(String email) {
@@ -56,7 +70,7 @@ public class Authentication {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 String[] parts = line.split("/");
-                String storedEmail = parts[1];
+                String storedEmail = parts[0];
                 if (email.equals(storedEmail)) {
                     return true;
                 }
@@ -73,7 +87,7 @@ public class Authentication {
             String hashedPassword = hashPassword(user.getPassword());
 
             try (PrintWriter writer = new PrintWriter(new FileWriter("Data.txt", true))) {
-                writer.println( user.getUseremail() + "/" + hashedPassword);
+                writer.println(user.getUseremail() + "/" + hashedPassword);
                 System.out.println("User registered successfully!");
             } catch (IOException e) {
                 System.out.println("Error: Failed to write user data.");

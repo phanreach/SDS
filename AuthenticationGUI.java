@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.swing.JFrame;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,6 +29,8 @@ public class AuthenticationGUI extends JFrame {
         panel.add(registerButton);
         add(panel, BorderLayout.CENTER);
         add(messageLabel, BorderLayout.SOUTH);
+
+        
 
         // Set button actions
         loginButton.addActionListener(new ActionListener() {
