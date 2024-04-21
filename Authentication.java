@@ -15,18 +15,23 @@ public class Authentication {
             return false; // User not found
         }
 
-        String inputHash;
+        String inputEmailHash;
+        String inputPasswordHash;
         try {
-            inputHash = hashPassword(password);
+            inputEmailHash = hashEmail(email);
+            inputPasswordHash = hashPassword(password);
         } catch (NoSuchAlgorithmException e) {
-            System.out.println("Error: Password hashing failed.");
+            System.out.println("Error: Hashing failed.");
             return false;
         }
 
-        // Debug: Print the computed hash for verification
-        System.out.println("Computed Hash for " + email + ": " + inputHash);
+        // Debug: Print the computed hashes for verification
+        System.out.println("Computed Email Hash: " + inputEmailHash);
+        System.out.println("Stored Email Hash: " + storedHash.split("/")[0]);
+        System.out.println("Computed Password Hash: " + inputPasswordHash);
+        System.out.println("Stored Password Hash: " + storedHash.split("/")[1]);
 
-        if (inputHash.equals(storedHash)) {
+        if (inputEmailHash.equals(storedHash.split("/")[0]) && inputPasswordHash.equals(storedHash.split("/")[1])) {
             System.out.println("Login successful for email: " + email);
             return true;
         } else {
@@ -40,8 +45,8 @@ public class Authentication {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] parts = line.split("/");
-                if (parts.length == 2 && parts[0].equals(email)) {
-                    return parts[1]; // Return the stored hash
+                if (parts.length == 3 && parts[1].equals(email)) {
+                    return parts[0] + "/" + parts[2]; // Return the stored email hash and password hash
                 }
             }
         } catch (IOException e) {
@@ -57,12 +62,24 @@ public class Authentication {
             return;
         }
 
-        User user = new User(email, password);
-        saveUserToDatabase(user);
+        String emailHash;
+        String passwordHash;
+        try {
+            emailHash = hashEmail(email);
+            passwordHash = hashPassword(password);
+        } catch (NoSuchAlgorithmException e) {
+            System.out.println("Error: Hashing failed.");
+            e.printStackTrace();
+            return;
+        }
 
-        // Debug: Print the stored hash for verification
-        String storedHash = getStoredHash(email);
-        System.out.println("Stored Hash for " + email + ": " + storedHash);
+        try (PrintWriter writer = new PrintWriter(new FileWriter("Data.txt", true))) {
+            writer.println(emailHash + "/" + email + "/" + passwordHash);
+            System.out.println("User registered successfully!");
+        } catch (IOException e) {
+            System.out.println("Error: Failed to write user data.");
+            e.printStackTrace();
+        }
     }
 
     public static boolean isUserRegistered(String email) {
@@ -70,8 +87,7 @@ public class Authentication {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 String[] parts = line.split("/");
-                String storedEmail = parts[0];
-                if (email.equals(storedEmail)) {
+                if (parts.length == 3 && parts[1].equals(email)) {
                     return true;
                 }
             }
@@ -82,27 +98,21 @@ public class Authentication {
         return false;
     }
 
-    private static void saveUserToDatabase(User user) {
-        try {
-            String hashedPassword = hashPassword(user.getPassword());
-
-            try (PrintWriter writer = new PrintWriter(new FileWriter("Data.txt", true))) {
-                writer.println(user.getUseremail() + "/" + hashedPassword);
-                System.out.println("User registered successfully!");
-            } catch (IOException e) {
-                System.out.println("Error: Failed to write user data.");
-                e.printStackTrace();
-            }
-        } catch (NoSuchAlgorithmException e) {
-            System.out.println("Error: Password hashing failed.");
-            e.printStackTrace();
-        }
-    }
-
     private static String hashPassword(String password) throws NoSuchAlgorithmException {
         String saltedPassword = password + SALT;
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
         byte[] hashBytes = digest.digest(saltedPassword.getBytes());
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : hashBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    private static String hashEmail(String email) throws NoSuchAlgorithmException {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hashBytes = digest.digest(email.getBytes());
 
         StringBuilder sb = new StringBuilder();
         for (byte b : hashBytes) {
